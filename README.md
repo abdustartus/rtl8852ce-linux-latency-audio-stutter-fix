@@ -1,151 +1,168 @@
 # RTL8852CE Linux WiFi Latency + Audio Stutter Fix
 
-![Linux](https://img.shields.io/badge/Linux-supported-green)
-![Realtek](https://img.shields.io/badge/Realtek-RTL8852CE-blue)
-![Driver](https://img.shields.io/badge/Driver-rtw89-orange)
-![Status](https://img.shields.io/badge/Status-Stable-success)
+Fix for **Realtek RTL8852CE (rtw89)** Linux WiFi latency spikes, packet loss, and YouTube audio stutter.
 
-Fix for **Realtek RTL8852CE / rtw89** Wi‑Fi latency spikes, packet loss, and YouTube audio stutter on Linux.
-
----
-
-# One‑Command Install
-
-```
-sudo nano /etc/modprobe.d/rtw89.conf
-```
-
-Paste:
-
-```
-options rtw89_pci disable_clkreq=y
-options rtw89_pci disable_aspm_l1=y
-options rtw89_pci disable_aspm_l1ss=y
-```
-
-Then:
-
-```
-sudo update-initramfs -u
-sudo reboot
-```
-
----
-
-Fix for **Realtek RTL8852CE / rtw89** Wi‑Fi latency spikes, packet loss, and YouTube audio stutter on Linux.
-
-This guide documents a **real-world debugging session** and the final stable solution.
+Tested on:
+- Gigabyte Z790 D AX
+- Realtek RTL8852CE
+- Linux kernel 6.x
+- WiFi 6 (802.11ax) router
 
 ---
 
 # Symptoms
 
-- 500–1000 ms ping spikes
+You may be affected if you see:
+
+- 500ms–1000ms ping spikes
 - Random packet loss
 - YouTube audio stuttering
-- Wi‑Fi shows strong signal but unstable
-- Gaming lag / jitter
+- WiFi signal strong but unstable
 - SSH lag over LAN
+- Gaming jitter
 
-Example (before fix):
+Example:
 
 ```
-1 ms
-2 ms
-1050 ms
-900 ms
-packet loss
+64 bytes time=1.2 ms
+64 bytes time=1.4 ms
+64 bytes time=1050 ms
+64 bytes time=900 ms
 ```
 
 ---
 
-# Hardware
+# Affected Hardware
 
-Motherboard:
-- Gigabyte Z790 D AX
+Likely affects:
 
-Wi‑Fi chipset:
-- Realtek RTL8852CE
-
-Driver:
-- rtw89
-
-Kernel:
-- 6.17.0-19-generic (also affects 6.5+)
-
-Router:
-- Wi‑Fi 6 (802.11ax)
-- 160 MHz enabled
+- RTL8852CE
+- RTL8852AE
+- RTL8851BE
+- rtw89 driver
+- WiFi 6 routers
+- Intel Z690 / Z790 boards
 
 ---
 
-# Root Cause
+# Step 1 — Diagnose Your WiFi Connection
 
-This issue is caused by a **combination** of:
-
-- rtw89 latency bug
-- PCIe ASPM power transitions
-- Wi‑Fi 6 aggregation stalls
-- 160 MHz DFS scanning pauses
-- NetworkManager powersave conflicts
-
----
-
-# Step 1 — Verify the Problem
+Check latency to router:
 
 ```
 ping 192.168.1.1
 ```
 
-If you see:
-
-```
-1 ms
-2 ms
-900 ms
-1000 ms
-```
-
-You are affected.
+If you see spikes above 100 ms, continue.
 
 ---
 
-# Step 2 — Router Fix (IMPORTANT)
+Check connected band:
 
-Disable **Wi‑Fi 6 (802.11ax)** on 5 GHz.
+```
+iw dev
+```
 
-Also:
+Example output:
 
-- Avoid 160 MHz bandwidth
-- Use 80 MHz
-- Use 802.11ac / n
+```
+channel 40 (5200 MHz)
+```
 
-This removes most spikes.
+5200 MHz = 5 GHz
 
 ---
 
-# Step 3 — DO NOT Use NetworkManager Powersave Override
+# Step 2 — Test 2.4 GHz vs 5 GHz
 
-Do NOT use:
+Connect to **2.4 GHz** and test:
+
+```
+ping 192.168.1.1
+```
+
+Then connect to **5 GHz** and test again.
+
+If:
+
+- 2.4 GHz stable
+- 5 GHz unstable
+
+Then router WiFi 6 / bandwidth issue confirmed.
+
+---
+
+# Step 3 — Router Configuration Fix
+
+Login to router admin panel.
+
+Check:
+
+## 2.4 GHz
+
+Use one of:
+
+- 802.11b+g+n
+- 802.11n
+
+Avoid:
+
+- 802.11ax
+
+---
+
+## 5 GHz Settings (Important)
+
+Change:
+
+Mode:
+
+```
+802.11ac or 802.11n/ac
+```
+
+Avoid:
+
+```
+802.11ax
+```
+
+Bandwidth:
+
+```
+80 MHz
+```
+
+Avoid:
+
+```
+160 MHz
+```
+
+---
+
+# Step 4 — Disable NetworkManager WiFi Powersave
+
+Check if file exists:
 
 ```
 /etc/NetworkManager/conf.d/wifi-powersave.conf
 ```
 
-Especially avoid:
+If present remove or comment:
 
 ```
 [connection]
 wifi.powersave = 2
 ```
 
-This fixes ping but **causes audio stalls**.
+This can cause **audio stalls**.
 
 ---
 
 # Final Fix (Stable Solution)
 
-Create:
+Create config:
 
 ```
 sudo nano /etc/modprobe.d/rtw89.conf
@@ -159,7 +176,7 @@ options rtw89_pci disable_aspm_l1=y
 options rtw89_pci disable_aspm_l1ss=y
 ```
 
-Then run:
+Apply:
 
 ```
 sudo update-initramfs -u
@@ -168,29 +185,19 @@ sudo reboot
 
 ---
 
-# Result
-
-Before:
+# One Command Install
 
 ```
-1000 ms spikes
-packet loss
-YouTube stutter
-```
-
-After:
-
-```
-1–2 ms stable
-0% packet loss
-smooth YouTube playback
+sudo cp rtw89.conf /etc/modprobe.d/
+sudo update-initramfs -u
+sudo reboot
 ```
 
 ---
 
 # Verification
 
-Check ping:
+Run:
 
 ```
 ping 192.168.1.1
@@ -200,7 +207,8 @@ Expected:
 
 ```
 1.1 ms
-1.4 ms
+1.3 ms
+1.5 ms
 1.6 ms
 ```
 
@@ -208,7 +216,23 @@ No spikes.
 
 ---
 
-# Optional Debug Commands
+# Before vs After
+
+## Before
+
+- 1000 ms spikes
+- packet loss
+- YouTube audio stutter
+
+## After
+
+- 1–2 ms stable
+- 0% packet loss
+- smooth audio
+
+---
+
+# Debug Commands
 
 Check driver:
 
@@ -222,17 +246,24 @@ Check interface:
 iw dev
 ```
 
-Check power save:
+Check powersave:
 
 ```
 iw dev wlp3s0 get power_save
 ```
 
+Reload driver:
+
+```
+sudo modprobe -r rtw89_8852ce rtw89_pci rtw89_core
+sudo modprobe rtw89_8852ce
+```
+
 ---
 
-# What NOT To Do
+# What NOT To Use
 
-Do NOT use these (causes instability):
+Avoid these options (causes instability):
 
 ```
 disable_ps_mode
@@ -245,39 +276,59 @@ Only use PCIe ASPM fixes.
 
 ---
 
-# Affected Hardware
+# Root Cause
 
-Likely affects:
+This is caused by combination of:
 
-- RTL8852CE
-- RTL8852AE
-- RTL8851BE
-- rtw89 driver
-- Intel Z690/Z790 boards
-- Wi‑Fi 6 routers
+- rtw89 latency bug
+- PCIe ASPM transitions
+- WiFi 6 aggregation stalls
+- 160 MHz DFS pauses
+- firmware power saving conflicts
 
 ---
 
-# Search Keywords
+# Files Included
 
-rtl8852ce linux lag  
-rtw89 latency spikes  
-linux wifi 1000ms ping  
-realtek rtl8852ce stutter  
-linux wifi audio stutter  
-rtw89 packet loss linux
+rtw89.conf
+install.sh
+README.md
+
+---
+
+# Install Script
+
+```
+./install.sh
+```
+
+---
+
+# If This Helped
+
+Please ⭐ the repository.
+
+This issue is common but poorly documented.
+
+---
+
+# Tags
+
+rtl8852ce  
+rtw89  
+realtek  
+realtek-driver  
+realtek-firmware  
+linux-wifi  
+wifi-lag  
+wifi-stutter  
+packet-loss  
+80211ax  
+wifi-6
 
 ---
 
 # License
 
-MIT — use freely.
-
----
-
-# If this helped
-
-Star the repo ⭐
-
-This issue is very common but poorly documented.
+MIT
 
