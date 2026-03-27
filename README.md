@@ -190,12 +190,12 @@ This can cause **audio stalls**.
 
 ---
 
-# Final Fix (Stable Solution)
+# Manual Configuration Details
 
 Create config:
 
 ```
-sudo vim /etc/modprobe.d/rtw89.conf
+sudo nano /etc/modprobe.d/rtw89.conf
 ```
 
 Add:
