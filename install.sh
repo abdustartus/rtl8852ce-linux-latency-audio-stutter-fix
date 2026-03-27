@@ -1,9 +1,23 @@
 #!/bin/bash
 
+# Check if script is run as root
+if [ "$EUID" -ne 0 ]; then 
+  echo "❌ Please run as root (use: sudo ./install.sh)"
+  exit 1
+fi
+
 echo "Installing RTL8852CE latency fix..."
 
-sudo cp rtw89.conf /etc/modprobe.d/
+# Backup existing config if it exists
+if [ -f /etc/modprobe.d/rtw89.conf ]; then
+    echo "Creating backup of existing rtw89.conf..."
+    cp /etc/modprobe.d/rtw89.conf /etc/modprobe.d/rtw89.conf.bak
+fi
 
-sudo update-initramfs -u
+# Copy the new fix
+cp rtw89.conf /etc/modprobe.d/
 
-echo "Done. Reboot required."
+# Update initramfs
+update-initramfs -u
+
+echo "✅ Fix applied. Please reboot your system."
