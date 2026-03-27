@@ -1,6 +1,15 @@
 # RTL8852CE Linux WiFi Latency + Audio Stutter Fix
 
-Fix for **Realtek RTL8852CE (rtw89)** Linux WiFi latency spikes, packet loss, and YouTube audio stutter.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+This repository provides a permanent solution for **Realtek RTL8852CE (rtw89)** latency issues on Linux. If you are experiencing **1000ms ping spikes**, **packet loss**, or **YouTube audio stuttering** on Ubuntu, Fedora, or Arch Linux, follow these steps.
+
+### 🎯 What this fixes:
+* **WiFi Latency Spikes:** Drops 1000ms+ pings down to 1-2ms.
+* **Audio Stalling:** Fixes stuttering caused by NetworkManager power saving.
+* **PCIe ASPM Conflicts:** Resolves driver-level hardware stalls on Z690/Z790 boards.
+
+---
 
 Tested on:
 - Gigabyte Z790 D AX
