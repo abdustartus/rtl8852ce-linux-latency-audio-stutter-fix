@@ -19,6 +19,27 @@ Tested on:
 
 ---
 
+# Installation
+
+You can apply this fix automatically using the included script, or manually.
+
+### Option 1: Automatic Install (Recommended)
+Make the script executable and run it with root privileges:
+```bash
+chmod +x install.sh
+sudo ./install.sh
+
+```
+### Option 2: Manual Install
+If you prefer to apply the fix manually:
+```
+sudo cp rtw89.conf /etc/modprobe.d/
+sudo update-initramfs -u
+sudo reboot
+```
+
+---
+
 # Symptoms
 
 You may be affected if you see:
@@ -145,7 +166,7 @@ Bandwidth:
 Avoid:
 
 ```
-1600 MHz
+160 MHz
 ```
 
 ---
@@ -193,14 +214,6 @@ sudo reboot
 ```
 
 ---
-
-# One Command Install
-
-```
-sudo cp rtw89.conf /etc/modprobe.d/
-sudo update-initramfs -u
-sudo reboot
-```
 
 ---
 
@@ -304,12 +317,6 @@ install.sh
 README.md
 
 ---
-
-# Install Script
-
-```
-./install.sh
-```
 
 ---
 
