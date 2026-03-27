@@ -139,13 +139,13 @@ Avoid:
 Bandwidth:
 
 ```
-80 MHz
+80 MHz or 40 MHz (Recommended)
 ```
 
 Avoid:
 
 ```
-160 MHz
+1600 MHz
 ```
 
 ---
@@ -174,7 +174,7 @@ This can cause **audio stalls**.
 Create config:
 
 ```
-sudo nano /etc/modprobe.d/rtw89.conf
+sudo vim /etc/modprobe.d/rtw89.conf
 ```
 
 Add:
