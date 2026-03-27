@@ -337,7 +337,3 @@ wifi-6
 
 ---
 
-# License
-
-MIT
-
