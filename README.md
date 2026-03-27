@@ -215,8 +215,6 @@ sudo reboot
 
 ---
 
----
-
 # Verification
 
 Run:
@@ -315,8 +313,6 @@ This is caused by combination of:
 rtw89.conf
 install.sh
 README.md
-
----
 
 ---
 
