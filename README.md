@@ -80,7 +80,7 @@ Likely affects:
 Check latency to router:
 
 ```
-ping 192.168.1.1
+ping 192.168.1.1 (use default gateway)
 ```
 
 If you see spikes above 100 ms, continue.
@@ -108,7 +108,7 @@ channel 40 (5200 MHz)
 Connect to **2.4 GHz** and test:
 
 ```
-ping 192.168.1.1
+ping 192.168.1.1 (use default gateway)
 ```
 
 Then connect to **5 GHz** and test again.
@@ -220,7 +220,7 @@ sudo reboot
 Run:
 
 ```
-ping 192.168.1.1
+ping 192.168.1.1 (use default gateway)
 ```
 
 Expected:
