@@ -323,6 +323,7 @@ Check default gateway
 ```
 ip route | grep default
 ```
+---
 
 # If This Helped
 
