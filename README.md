@@ -316,6 +316,14 @@ README.md
 
 ---
 
+# Quick Tip
+
+Check default gateway
+
+```
+ip route | grep default
+```
+
 # If This Helped
 
 Please ⭐ the repository.
