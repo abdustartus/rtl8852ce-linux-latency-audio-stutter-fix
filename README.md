@@ -363,28 +363,27 @@ This is caused by combination of:
 
 # Files Included
 
-rtw89.conf
-install.sh
-README.md
+- rtw89.conf  
+- install.sh  
+- README.md  
 
 ---
 
 # Tags
 
-rtl8852ce
-rtw89
-realtek
-realtek-driver
-realtek-firmware
-linux-wifi
-wifi-lag
-wifi-stutter
-packet-loss
-pipewire
-audio-stutter
-cpu-governor
-intel-pstate
-
+- rtl8852ce  
+- rtw89  
+- realtek  
+- realtek-driver  
+- realtek-firmware  
+- linux-wifi  
+- wifi-lag  
+- wifi-stutter  
+- packet-loss  
+- pipewire  
+- audio-stutter  
+- cpu-governor  
+- intel-pstate  
 ---
 
 # If This Helped
