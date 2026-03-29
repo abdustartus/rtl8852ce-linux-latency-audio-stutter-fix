@@ -1,45 +1,76 @@
-# RTL8852CE Linux WiFi Latency + Audio Stutter Fix
+# RTL8852CE Linux WiFi Latency + Audio Stutter Fix (Balanced)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+A **balanced latency fix** for Realtek **RTL8852CE / rtw89** on Linux.
+This solution removes **WiFi latency spikes and audio stutter** without forcing CPU performance mode or disabling WiFi 6.
 
-This repository provides a **complete fix** for **Realtek RTL8852CE (rtw89)** latency issues and **random audio stalls** on Linux.
-
-Fixes:
-
-* 1000ms ping spikes
-* packet loss
-* YouTube audio stutter
-* random audio stalls after boot
-* WiFi instability on 5 GHz
-* PipeWire audio glitches
-* CPU powersave audio freezes
+Unlike aggressive workarounds, this approach **targets only the problematic WiFi power states**, keeping the rest of the system efficient.
 
 ---
 
-# Tested Hardware
+## What This Fix Resolves
+
+* 500–1000 ms ping spikes
+* Random packet loss
+* YouTube / video audio stuttering
+* Intermittent SSH lag
+* Gaming jitter
+* WiFi stable signal but unstable latency
+
+---
+
+## What This Fix Does
+
+This configuration disables **problematic Realtek power states only**:
+
+* WiFi card power saving
+* PCIe ASPM L1 state
+* PCIe L1 Substates (L1SS)
+
+This keeps:
+
+* CPU power scaling intact
+* PCIe clock management intact
+* WiFi 6 (802.11ax) support
+* Normal system thermals
+* Low idle power usage
+
+This provides **stable latency without aggressive system-wide changes**.
+
+---
+
+## Tested Hardware
+
+Tested on:
 
 * Gigabyte Z790 D AX
 * Realtek RTL8852CE
-* Intel 12th / 13th / 14th Gen CPU
+* Intel 12th/13th/14th gen platforms
 * Linux kernel 6.x
-* PipeWire audio
-* WiFi 6 router (802.11ax)
+* WiFi 6 routers
+
+Also likely affects:
+
+* RTL8852CE
+* RTL8852AE
+* RTL8851BE
+* rtw89 driver
 
 ---
 
-# Installation
+## Installation
 
-## Option 1 — Automatic Install (Recommended)
+### Automatic Install (Recommended)
 
 ```
 chmod +x install.sh
 sudo ./install.sh
-sudo reboot
 ```
+
+Reboot after installation.
 
 ---
 
-## Option 2 — Manual Install
+### Manual Install
 
 ```
 sudo cp rtw89.conf /etc/modprobe.d/
@@ -47,299 +78,82 @@ sudo update-initramfs -u
 sudo reboot
 ```
 
-Then apply CPU fix:
-
-```
-sudo apt install linux-tools-common linux-tools-generic -y
-sudo cpupower frequency-set -g performance
-```
-
 ---
 
-# Symptoms
+## Configuration Applied
 
-You may be affected if you experience:
-
-* 500ms–1000ms ping spikes
-* random packet loss
-* YouTube audio stuttering
-* audio stalls after boot
-* WiFi signal strong but unstable
-* SSH lag over LAN
-* gaming jitter
-
-Example:
+The following parameters are used:
 
 ```
-64 bytes time=1.2 ms
-64 bytes time=1.4 ms
-64 bytes time=1050 ms
-64 bytes time=900 ms
-```
-
----
-
-# Step 1 — Diagnose WiFi Latency
-
-Check latency to router:
-
-```
-ping 192.168.1.1
-```
-
-If spikes above 100 ms appear, continue.
-
----
-
-# Step 2 — Check Connected Band
-
-```
-iw dev
-```
-
-Example:
-
-```
-channel 40 (5200 MHz)
-```
-
-5200 MHz = 5 GHz
-
----
-
-# Step 3 — Test 2.4 GHz vs 5 GHz
-
-Connect to **2.4 GHz**:
-
-```
-ping 192.168.1.1 (default gateway)
-```
-
-Then connect to **5 GHz**:
-
-```
-ping 192.168.1.1 (default gateway)
-```
-
-If:
-
-* 2.4 GHz stable
-* 5 GHz unstable
-
-Router WiFi 6 / bandwidth issue confirmed.
-
----
-
-# Step 4 — Router Configuration Fix
-
-## 2.4 GHz
-
-Use:
-
-```
-802.11b+g+n
-```
-
-Avoid:
-
-```
-802.11ax
-```
-
----
-
-## 5 GHz
-
-Use:
-
-```
-802.11ac
-```
-
-Avoid:
-
-```
-802.11ax
-160 MHz
-```
-
-Recommended:
-
-```
-Bandwidth: 80 MHz or 40 MHz (Recommended)
-```
-
----
-
-# Step 5 — Disable NetworkManager WiFi Powersave
-
-Check:
-
-```
-/etc/NetworkManager/conf.d/wifi-powersave.conf
-```
-
-If present remove:
-
-```
-[connection]
-wifi.powersave = 2
-```
-
-Restart NetworkManager:
-
-```
-sudo systemctl restart NetworkManager
-```
-
----
-
-# Step 6 — Apply rtw89 Fix
-
-Create:
-
-```
-sudo nano /etc/modprobe.d/rtw89.conf
-```
-
-Add:
-
-```
-options rtw89_pci disable_clkreq=y
+options rtw89_core disable_ps_mode=y
 options rtw89_pci disable_aspm_l1=y
 options rtw89_pci disable_aspm_l1ss=y
-options rtw89_core disable_ps_mode=y
 ```
 
-Apply:
-
-```
-sudo update-initramfs -u
-sudo reboot
-```
+These disable unstable power transitions responsible for latency spikes.
 
 ---
 
-# Step 7 — Fix Random Audio Stalls (IMPORTANT)
+## Verify the Fix
 
-Check CPU governor:
-
-```
-cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-```
-
-If you see:
-
-```
-powersave
-```
-
-Switch to performance:
-
-```
-sudo apt install linux-tools-common linux-tools-generic -y
-sudo cpupower frequency-set -g performance
-```
-
----
-
-# Make CPU Fix Permanent
-
-Create service:
-
-```
-sudo nano /etc/systemd/system/cpu-performance.service
-```
-
-Paste:
-
-```
-[Unit]
-Description=Set CPU governor to performance
-After=multi-user.target
-
-[Service]
-Type=oneshot
-ExecStart=/bin/bash -c "sleep 5 && /usr/bin/cpupower frequency-set -g performance"
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable:
-
-```
-sudo systemctl daemon-reload
-sudo systemctl enable cpu-performance.service
-sudo reboot
-```
-
----
-
-# Verification
-
-WiFi:
+Check latency to your router:
 
 ```
 ping 192.168.1.1 (default gateway)
 ```
 
-Expected:
+Expected output:
 
 ```
-1.1 ms
-1.3 ms
-1.5 ms
-1.6 ms
+64 bytes time=1.1 ms
+64 bytes time=1.3 ms
+64 bytes time=1.2 ms
+64 bytes time=1.4 ms
 ```
 
-Audio:
-
-* no YouTube stalls
-* no random freezes
-* smooth playback
+No spikes above ~5 ms.
 
 ---
 
-# Before vs After
+## Before vs After
 
-## Before
+Before:
 
-* 1000 ms spikes
-* packet loss
-* YouTube audio stutter
-* random audio stalls
+* 1000 ms ping spikes
+* Audio stutter
+* Packet loss
+* Random lag
 
-## After
+After:
 
-* 1–2 ms stable
-* 0% packet loss
-* smooth audio
-* no stalls
+* Stable 1–2 ms latency
+* Smooth audio playback
+* No packet loss
+* Consistent WiFi performance
 
 ---
 
-# Debug Commands
+## Diagnose Your System
 
-Check driver:
+Check loaded driver:
 
 ```
 lsmod | grep rtw89
 ```
 
-Check interface:
+Check WiFi interface:
 
 ```
 iw dev
 ```
 
-Check CPU governor:
+Check power saving:
 
 ```
-cat /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+iw dev wlp3s0 get power_save
 ```
 
-Reload driver:
+Reload driver manually:
 
 ```
 sudo modprobe -r rtw89_8852ce rtw89_pci rtw89_core
@@ -348,46 +162,76 @@ sudo modprobe rtw89_8852ce
 
 ---
 
-# Root Cause
+## Root Cause
 
-This is caused by combination of:
+The issue is caused by interaction between:
 
-* rtw89 latency bug
+* rtw89 driver power saving
 * PCIe ASPM transitions
-* WiFi 6 aggregation stalls
-* CPU powersave latency
-* PipeWire scheduling delay
-* firmware power saving conflicts
+* WiFi firmware latency stalls
+* aggregation timing issues
+
+These create **periodic latency spikes** even with strong signal.
+
+This fix disables the unstable transitions.
 
 ---
 
-# Files Included
+## Kernel Updates
 
-- rtw89.conf  
-- install.sh  
-- README.md  
+The fix is persistent across kernel updates because it uses:
+
+```
+/etc/modprobe.d/rtw89.conf
+```
+
+If latency returns after an update:
+
+```
+sudo update-initramfs -u
+sudo reboot
+```
 
 ---
 
-# Tags
+## Files Included
 
-- rtl8852ce  
-- rtw89  
-- realtek  
-- realtek-driver  
-- realtek-firmware  
-- linux-wifi  
-- wifi-lag  
-- wifi-stutter  
-- packet-loss  
-- pipewire  
-- audio-stutter  
-- cpu-governor  
-- intel-pstate  
+* rtw89.conf
+* install.sh
+* README.md
+
 ---
 
-# If This Helped
+## Affected Platforms
 
-Please ⭐ the repository.
+Commonly reported on:
 
-This issue is common but poorly documented.
+* Intel Z690 / Z790
+* WiFi 6 routers
+* Linux kernel 6.x
+* Desktop motherboards with RTL8852CE
+
+---
+
+## If This Helped
+
+Please star the repository.
+
+This issue is widespread but poorly documented.
+
+---
+
+## Tags
+
+- rtl8852ce
+- rtw89
+- realtek
+- realtek-wifi
+- linux-wifi
+- wifi-lag
+- wifi-stutter
+- packet-loss
+- audio-stutter
+- pipewire
+- z790
+- wifi-6
