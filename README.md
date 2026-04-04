@@ -1,237 +1,227 @@
-# RTL8852CE Linux WiFi Latency + Audio Stutter Fix (Balanced)
+# RTL8852CE Linux WiFi Latency + Audio Stutter Fix
 
-A **balanced latency fix** for Realtek **RTL8852CE / rtw89** on Linux.
-This solution removes **WiFi latency spikes and audio stutter** without forcing CPU performance mode or disabling WiFi 6.
+A **stable latency fix** for Realtek **RTL8852CE / rtw89** on Linux.
 
-Unlike aggressive workarounds, this approach **targets only the problematic WiFi power states**, keeping the rest of the system efficient.
+This solution removes:
+- WiFi latency spikes
+- packet loss
+- audio/video stutter
 
----
+without forcing CPU performance mode or disabling WiFi 6.
 
-## What This Fix Resolves
-
-* 500–1000 ms ping spikes
-* Random packet loss
-* YouTube / video audio stuttering
-* Intermittent SSH lag
-* Gaming jitter
-* WiFi stable signal but unstable latency
+The fix targets **Realtek driver power-state instability** and **firmware calibration stalls** seen on kernel 6.x.
 
 ---
 
-## What This Fix Does
+# Symptoms
 
-This configuration disables **problematic Realtek power states only**:
+This fix applies if you experience:
 
-* WiFi card power saving
-* PCIe ASPM L1 state
-* PCIe L1 Substates (L1SS)
-
-This keeps:
-
-* CPU power scaling intact
-* PCIe clock management intact
-* WiFi 6 (802.11ax) support
-* Normal system thermals
-* Low idle power usage
-
-This provides **stable latency without aggressive system-wide changes**.
+- 500–10000 ms ping spikes
+- "Destination Host Unreachable" randomly
+- Audio stutter during video playback
+- SSH freezing briefly
+- Gaming jitter
+- Smooth signal but unstable latency
+- `[RX_DCK] timeout` in dmesg
 
 ---
 
-## Tested Hardware
+# Root Cause
+
+The issue is caused by a combination of:
+
+- rtw89 driver power saving
+- PCIe ASPM transitions
+- Realtek firmware RX calibration stalls
+- WiFi 6 timing sensitivity
+
+These create **periodic firmware stalls**, causing latency spikes and audio glitches.
+
+---
+
+# What This Fix Does
+
+This configuration disables unstable Realtek power states:
+
+- WiFi power saving
+- PCIe ASPM L1
+- PCIe L1 substates
+- PCIe clock request transitions
+
+This stabilizes firmware calibration and removes latency spikes.
+
+---
+
+# Balanced vs Aggressive Mode
+
+## Balanced (default recommended)
+
+Keeps:
+- WiFi 6 support
+- normal power usage
+- stable latency
+
+## Aggressive (maximum stability)
+
+Disables additional PCIe clock transitions.
+
+Use only if:
+- spikes still occur
+- firmware RX_DCK timeout appears
+
+---
+
+# Tested Hardware
 
 Tested on:
 
-* Gigabyte Z790 D AX
-* Realtek RTL8852CE
-* Intel 12th/13th/14th gen platforms
-* Linux kernel 6.x
-* WiFi 6 routers
+- Gigabyte Z790 D AX
+- RTL8852CE
+- Intel 12th / 13th / 14th gen
+- Linux kernel 6.x
+- WiFi 6 routers
 
-Also likely affects:
+Also affects:
 
-* RTL8852CE
-* RTL8852AE
-* RTL8851BE
-* rtw89 driver
+- RTL8852CE
+- RTL8852AE
+- RTL8851BE
+- rtw89 driver
 
 ---
 
-## Installation
+# Installation
 
-### Automatic Install (Recommended)
+## Automatic Install
 
 ```
+
 chmod +x install.sh
 sudo ./install.sh
+
 ```
 
-Reboot after installation.
+Reboot recommended.
 
 ---
 
-### Manual Install
+## Manual Install
 
 ```
+
 sudo cp rtw89.conf /etc/modprobe.d/
-sudo update-initramfs -u
+sudo update-initramfs -u -k all
 sudo reboot
+
 ```
 
 ---
 
-## Configuration Applied
-
-The following parameters are used:
+# Configuration Applied
 
 ```
+
 options rtw89_core disable_ps_mode=y
 options rtw89_pci disable_aspm_l1=y
 options rtw89_pci disable_aspm_l1ss=y
-```
+options rtw89_pci disable_clkreq=y
 
-These disable unstable power transitions responsible for latency spikes.
+```
 
 ---
 
-## Verify the Fix
-
-Check latency to your router:
+# Verify Fix
 
 ```
-ping 192.168.1.1 (default gateway)
-```
 
-Expected output:
+ping 192.168.1.1 (use default gateway)
 
 ```
-64 bytes time=1.1 ms
-64 bytes time=1.3 ms
-64 bytes time=1.2 ms
-64 bytes time=1.4 ms
+
+Expected:
+
+```
+
+time=1.1 ms
+time=1.2 ms
+time=1.0 ms
+time=1.3 ms
+
 ```
 
 No spikes above ~5 ms.
 
 ---
 
-## Before vs After
+# Diagnose Firmware Issue
 
-Before:
+Check for RX timeout:
 
-* 1000 ms ping spikes
-* Audio stutter
-* Packet loss
-* Random lag
+```
 
-After:
+sudo dmesg | grep rtw89
 
-* Stable 1–2 ms latency
-* Smooth audio playback
-* No packet loss
-* Consistent WiFi performance
+```
+
+Problem signature:
+
+```
+
+[RX_DCK] S1 RXDCK timeout
+
+```
+
+This fix prevents those stalls.
 
 ---
 
-## Diagnose Your System
+# After Kernel Update
 
-Check loaded driver:
-
-```
-lsmod | grep rtw89
-```
-
-Check WiFi interface:
+Fix persists automatically using:
 
 ```
-iw dev
-```
 
-Check power saving:
-
-```
-iw dev wlp3s0 get power_save
-```
-
-Reload driver manually:
-
-```
-sudo modprobe -r rtw89_8852ce rtw89_pci rtw89_core
-sudo modprobe rtw89_8852ce
-```
-
----
-
-## Root Cause
-
-The issue is caused by interaction between:
-
-* rtw89 driver power saving
-* PCIe ASPM transitions
-* WiFi firmware latency stalls
-* aggregation timing issues
-
-These create **periodic latency spikes** even with strong signal.
-
-This fix disables the unstable transitions.
-
----
-
-## Kernel Updates
-
-The fix is persistent across kernel updates because it uses:
-
-```
 /etc/modprobe.d/rtw89.conf
-```
-
-If latency returns after an update:
 
 ```
-sudo update-initramfs -u
+
+If latency returns:
+
+```
+
+sudo update-initramfs -u -k all
 sudo reboot
+
 ```
 
 ---
 
-## Files Included
+# Files Included
 
-* rtw89.conf
-* install.sh
-* README.md
-
----
-
-## Affected Platforms
-
-Commonly reported on:
-
-* Intel Z690 / Z790
-* WiFi 6 routers
-* Linux kernel 6.x
-* Desktop motherboards with RTL8852CE
+- rtw89.conf
+- install.sh
+- README.md
 
 ---
 
-## If This Helped
+# If This Helped
 
 Please star the repository.
 
-This issue is widespread but poorly documented.
+This Realtek issue is widespread but poorly documented.
 
 ---
 
-## Tags
+# Tags
 
-- rtl8852ce
-- rtw89
-- realtek
-- realtek-wifi
-- linux-wifi
-- wifi-lag
-- wifi-stutter
-- packet-loss
-- audio-stutter
-- pipewire
-- z790
-- wifi-6
+rtl8852ce  
+rtw89  
+realtek  
+linux-wifi  
+wifi-lag  
+wifi-stutter  
+packet-loss  
+audio-stutter  
+z790  
+wifi-6
